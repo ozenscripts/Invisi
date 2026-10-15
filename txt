@@ -1,0 +1,447 @@
+--[[
+    INVISIBLE HUB
+    Futuristic Roblox UI
+    For Roblox Studio projects you control
+]]
+
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+local old = playerGui:FindFirstChild("InvisibleHub")
+if old then old:Destroy() end
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "InvisibleHub"
+gui.ResetOnSpawn = false
+gui.Parent = playerGui
+
+local function make(class, props, parent)
+    local obj = Instance.new(class)
+    for k, v in pairs(props) do
+        obj[k] = v
+    end
+    obj.Parent = parent
+    return obj
+end
+
+local purple = Color3.fromRGB(144, 74, 255)
+local dark = Color3.fromRGB(15, 16, 27)
+local panel = Color3.fromRGB(24, 25, 40)
+local white = Color3.fromRGB(240, 240, 255)
+local muted = Color3.fromRGB(155, 157, 180)
+
+local main = make("Frame", {
+    Size = UDim2.fromOffset(590, 390),
+    Position = UDim2.new(0.5, -295, 0.5, -195),
+    BackgroundColor3 = dark,
+    BorderSizePixel = 0
+}, gui)
+
+make("UICorner", {CornerRadius = UDim.new(0, 12)}, main)
+make("UIStroke", {Color = purple, Thickness = 1.5, Transparency = 0.15}, main)
+
+local top = make("Frame", {
+    Size = UDim2.new(1, 0, 0, 58),
+    BackgroundColor3 = Color3.fromRGB(20, 19, 34),
+    BorderSizePixel = 0
+}, main)
+make("UICorner", {CornerRadius = UDim.new(0, 12)}, top)
+
+make("TextLabel", {
+    Position = UDim2.fromOffset(18, 8),
+    Size = UDim2.new(1, -100, 0, 25),
+    BackgroundTransparency = 1,
+    Text = "INVISIBLE HUB",
+    TextColor3 = white,
+    Font = Enum.Font.GothamBold,
+    TextSize = 21,
+    TextXAlignment = Enum.TextXAlignment.Left
+}, top)
+
+make("TextLabel", {
+    Position = UDim2.fromOffset(20, 32),
+    Size = UDim2.new(1, -100, 0, 17),
+    BackgroundTransparency = 1,
+    Text = "CHARACTER UTILITY  •  STUDIO EDITION",
+    TextColor3 = purple,
+    Font = Enum.Font.Gotham,
+    TextSize = 10,
+    TextXAlignment = Enum.TextXAlignment.Left
+}, top)
+
+local close = make("TextButton", {
+    Position = UDim2.new(1, -42, 0, 12),
+    Size = UDim2.fromOffset(28, 28),
+    BackgroundColor3 = Color3.fromRGB(55, 36, 75),
+    Text = "×",
+    TextColor3 = white,
+    Font = Enum.Font.GothamBold,
+    TextSize = 22,
+    BorderSizePixel = 0
+}, top)
+make("UICorner", {CornerRadius = UDim.new(0, 8)}, close)
+
+close.MouseButton1Click:Connect(function()
+    main.Visible = false
+end)
+
+-- Dragging
+local dragging, dragStart, startPos
+
+top.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = main.Position
+    end
+end)
+
+top.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = false
+    end
+end)
+
+game:GetService("UserInputService").InputChanged:Connect(function(input)
+    if dragging and (
+        input.UserInputType == Enum.UserInputType.MouseMovement
+        or input.UserInputType == Enum.UserInputType.Touch
+    ) then
+        local delta = input.Position - dragStart
+        main.Position = UDim2.new(
+            startPos.X.Scale, startPos.X.Offset + delta.X,
+            startPos.Y.Scale, startPos.Y.Offset + delta.Y
+        )
+    end
+end)
+
+local sidebar = make("Frame", {
+    Position = UDim2.fromOffset(12, 72),
+    Size = UDim2.fromOffset(145, 280),
+    BackgroundColor3 = panel,
+    BorderSizePixel = 0
+}, main)
+make("UICorner", {CornerRadius = UDim.new(0, 9)}, sidebar)
+
+local content = make("Frame", {
+    Position = UDim2.fromOffset(169, 72),
+    Size = UDim2.fromOffset(409, 305),
+    BackgroundTransparency = 1
+}, main)
+
+local pages = {}
+local function newPage(name)
+    local page = make("ScrollingFrame", {
+        Name = name,
+        Size = UDim2.fromScale(1, 1),
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        ScrollBarThickness = 3,
+        ScrollBarImageColor3 = purple,
+        CanvasSize = UDim2.fromOffset(0, 0),
+        Visible = false
+    }, content)
+
+    make("UIListLayout", {
+        Padding = UDim.new(0, 9),
+        SortOrder = Enum.SortOrder.LayoutOrder
+    }, page)
+
+    pages[name] = page
+    return page
+end
+
+local function switchPage(name)
+    for pageName, page in pairs(pages) do
+        page.Visible = pageName == name
+    end
+end
+
+local function navButton(name, order)
+    local b = make("TextButton", {
+        Size = UDim2.new(1, -12, 0, 40),
+        Position = UDim2.fromOffset(6, 0),
+        BackgroundColor3 = dark,
+        Text = "   " .. name,
+        TextColor3 = white,
+        Font = Enum.Font.GothamMedium,
+        TextSize = 12,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        BorderSizePixel = 0,
+        LayoutOrder = order
+    }, sidebar)
+
+    make("UICorner", {CornerRadius = UDim.new(0, 7)}, b)
+    b.MouseButton1Click:Connect(function()
+        switchPage(name)
+        for _, item in ipairs(sidebar:GetChildren()) do
+            if item:IsA("TextButton") then
+                item.BackgroundColor3 = item == b and
+                    Color3.fromRGB(62, 39, 95) or dark
+            end
+        end
+    end)
+    return b
+end
+
+make("UIListLayout", {
+    Padding = UDim.new(0, 7),
+    SortOrder = Enum.SortOrder.LayoutOrder
+}, sidebar)
+
+local movement = newPage("Movement")
+local animations = newPage("Animations")
+local playerPage = newPage("Player")
+local settings = newPage("Settings")
+
+navButton("Movement", 1)
+navButton("Animations", 2)
+navButton("Player", 3)
+navButton("Settings", 4)
+
+local function heading(page, text)
+    make("TextLabel", {
+        Size = UDim2.new(1, -6, 0, 30),
+        BackgroundTransparency = 1,
+        Text = text,
+        TextColor3 = white,
+        Font = Enum.Font.GothamBold,
+        TextSize = 17,
+        TextXAlignment = Enum.TextXAlignment.Left
+    }, page)
+end
+
+local function toggleRow(page, title, callback)
+    local row = make("Frame", {
+        Size = UDim2.new(1, -7, 0, 49),
+        BackgroundColor3 = panel,
+        BorderSizePixel = 0
+    }, page)
+    make("UICorner", {CornerRadius = UDim.new(0, 8)}, row)
+
+    make("TextLabel", {
+        Position = UDim2.fromOffset(12, 0),
+        Size = UDim2.new(1, -85, 1, 0),
+        BackgroundTransparency = 1,
+        Text = title,
+        TextColor3 = white,
+        Font = Enum.Font.GothamMedium,
+        TextSize = 12,
+        TextXAlignment = Enum.TextXAlignment.Left
+    }, row)
+
+    local enabled = false
+    local button = make("TextButton", {
+        Position = UDim2.new(1, -65, 0.5, -13),
+        Size = UDim2.fromOffset(53, 26),
+        BackgroundColor3 = Color3.fromRGB(65, 65, 80),
+        Text = "OFF",
+        TextColor3 = white,
+        Font = Enum.Font.GothamBold,
+        TextSize = 10,
+        BorderSizePixel = 0
+    }, row)
+    make("UICorner", {CornerRadius = UDim.new(0, 7)}, button)
+
+    button.MouseButton1Click:Connect(function()
+        enabled = not enabled
+        button.Text = enabled and "ON" or "OFF"
+        TweenService:Create(button, TweenInfo.new(0.15), {
+            BackgroundColor3 = enabled and purple or
+                Color3.fromRGB(65, 65, 80)
+        }):Play()
+        if callback then callback(enabled) end
+    end)
+end
+
+local function actionRow(page, title, actionText, callback)
+    local row = make("Frame", {
+        Size = UDim2.new(1, -7, 0, 49),
+        BackgroundColor3 = panel,
+        BorderSizePixel = 0
+    }, page)
+    make("UICorner", {CornerRadius = UDim.new(0, 8)}, row)
+
+    make("TextLabel", {
+        Position = UDim2.fromOffset(12, 0),
+        Size = UDim2.new(1, -110, 1, 0),
+        BackgroundTransparency = 1,
+        Text = title,
+        TextColor3 = white,
+        Font = Enum.Font.GothamMedium,
+        TextSize = 12,
+        TextXAlignment = Enum.TextXAlignment.Left
+    }, row)
+
+    local button = make("TextButton", {
+        Position = UDim2.new(1, -88, 0.5, -13),
+        Size = UDim2.fromOffset(77, 26),
+        BackgroundColor3 = purple,
+        Text = actionText,
+        TextColor3 = white,
+        Font = Enum.Font.GothamBold,
+        TextSize = 10,
+        BorderSizePixel = 0
+    }, row)
+    make("UICorner", {CornerRadius = UDim.new(0, 7)}, button)
+    button.MouseButton1Click:Connect(callback)
+end
+
+-- MOVEMENT PAGE
+heading(movement, "Movement Controls")
+toggleRow(movement, "Infinite Jump (Studio)", function(enabled)
+    -- Add your own game's approved jump logic here.
+end)
+toggleRow(movement, "Noclip Test Mode", function(enabled)
+    -- Reserved for collision testing in your own Studio game.
+end)
+toggleRow(movement, "Fly Test Mode", function(enabled)
+    -- Add your own game's flight controller here.
+end)
+
+make("TextLabel", {
+    Size = UDim2.new(1, -7, 0, 25),
+    BackgroundTransparency = 1,
+    Text = "WALK SPEED",
+    TextColor3 = muted,
+    Font = Enum.Font.GothamBold,
+    TextSize = 11,
+    TextXAlignment = Enum.TextXAlignment.Left
+}, movement)
+
+local speedLabel = make("TextLabel", {
+    Size = UDim2.new(1, -7, 0, 24),
+    BackgroundTransparency = 1,
+    Text = "Speed: 16",
+    TextColor3 = white,
+    Font = Enum.Font.Gotham,
+    TextSize = 12,
+    TextXAlignment = Enum.TextXAlignment.Left
+}, movement)
+
+local slider = make("TextBox", {
+    Size = UDim2.new(1, -7, 0, 38),
+    BackgroundColor3 = panel,
+    Text = "16",
+    PlaceholderText = "Enter speed (1-32)",
+    TextColor3 = white,
+    Font = Enum.Font.Gotham,
+    TextSize = 13,
+    ClearTextOnFocus = false
+}, movement)
+make("UICorner", {CornerRadius = UDim.new(0, 8)}, slider)
+
+slider.FocusLost:Connect(function()
+    local value = tonumber(slider.Text)
+    if value then
+        value = math.clamp(value, 1, 32)
+        slider.Text = tostring(value)
+        speedLabel.Text = "Speed: " .. value
+        local character = player.Character
+        local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+        if humanoid then humanoid.WalkSpeed = value end
+    end
+end)
+
+-- ANIMATIONS PAGE
+heading(animations, "Animation Library")
+
+local animationIds = {
+    ["Wave"] = "507770239",
+    ["Cheer"] = "507770677",
+    ["Dance"] = "507771019",
+    ["Point"] = "507770453",
+    ["Laugh"] = "507770818",
+    ["Clap"] = "507776043"
+}
+
+local currentTrack
+
+local function playAnimation(id)
+    local character = player.Character
+    local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+    if not humanoid then return end
+
+    local animator = humanoid:FindFirstChildOfClass("Animator")
+    if not animator then
+        animator = Instance.new("Animator")
+        animator.Parent = humanoid
+    end
+
+    if currentTrack then
+        currentTrack:Stop()
+        currentTrack = nil
+    end
+
+    local anim = Instance.new("Animation")
+    anim.AnimationId = "rbxassetid://" .. id
+
+    local success, track = pcall(function()
+        return animator:LoadAnimation(anim)
+    end)
+
+    if success and track then
+        currentTrack = track
+        track:Play()
+    end
+end
+
+for name, id in pairs(animationIds) do
+    actionRow(animations, name, "PLAY", function()
+        playAnimation(id)
+    end)
+end
+
+actionRow(animations, "Stop Current Animation", "STOP", function()
+    if currentTrack then
+        currentTrack:Stop()
+        currentTrack = nil
+    end
+end)
+
+-- PLAYER PAGE
+heading(playerPage, "Player Utilities")
+
+actionRow(playerPage, "Reset Character", "RESET", function()
+    local character = player.Character
+    local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+    if humanoid then humanoid.Health = 0 end
+end)
+
+actionRow(playerPage, "Restore Walk Speed", "RESTORE", function()
+    local character = player.Character
+    local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+    if humanoid then
+        humanoid.WalkSpeed = 16
+        speedLabel.Text = "Speed: 16"
+        slider.Text = "16"
+    end
+end)
+
+-- SETTINGS PAGE
+heading(settings, "Interface Settings")
+
+actionRow(settings, "Hide Interface", "HIDE", function()
+    main.Visible = false
+end)
+
+actionRow(settings, "Show Interface", "SHOW", function()
+    main.Visible = true
+end)
+
+make("TextLabel", {
+    Size = UDim2.new(1, -7, 0, 55),
+    BackgroundTransparency = 1,
+    Text = "INVISIBLE HUB\nMade for experiences you control.",
+    TextColor3 = muted,
+    Font = Enum.Font.Gotham,
+    TextSize = 12
+}, settings)
+
+switchPage("Movement")
+print("Invisible Hub loaded.")
